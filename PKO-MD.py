@@ -7,8 +7,8 @@ class Truck:
         self.capacity = capacity  # Solves this requirement: Katra mašīna var pāvadāt 80 kravas vienības;
         self.cargo = capacity     # Current cargo
         self.route = []           # List of location indices (starts and ends at depot)
-        self.total_time = 9*60    # Total time a truck has based on work hours
-        self.total_time_delivering = 0       # Total time spent on the route
+        self.total_time = 9*60    # Total time a truck has based on work hours # TODO delete or drag with?
+        self.total_time_delivering = 0       # Total time spent on the route #TODO delete
 
     def reset_cargo(self):
         self.cargo = self.capacity # when a truck returns to depot it can load back up to 80 capacity
@@ -58,6 +58,40 @@ def gen_inital_solution(demands, num_trucks):
 
     return solution
 
+# Function that evaluates solutions and outputs the cost of it
+def get_cost(solution, distance_matrix):
+    cost = 0
+    total_time_per_truck = 9*60
+    truck_times = []
+
+    # 1st lets address this constraint. 	Ir noteikts piegāžu darba laiks no 8:00-17:00. 17:00 visām mašīnām ir jāatgriežas uzņēmuma depo
+    for truck_id, route in solution.items():
+        total_time_delivering = 0
+        for i in range(len(route) - 1):
+            from_loc = route[i]
+            to_loc = route[i + 1]
+            travel_time = distance_matrix[from_loc][to_loc]
+            total_time_delivering += travel_time
+
+        # if it violates the work time, large penelty
+        if total_time_delivering > total_time_per_truck:
+            cost += 1e6
+    
+        # 2nd constraint # Jāsamazina laiks, cik katra mašīna pavada braucot;
+        cost += total_time_delivering
+
+        truck_times.append(total_time_delivering)
+        print(f"Truck {truck_id}: {total_time_delivering} minutes")
+
+    # 3rd constaint #Jānodrošina, lai katra mašīna pēc iespējas ir vienlīdz nodarbināta.
+    avg_time = sum(truck_times) / len(truck_times)
+    workload_variance = sum(abs(time - avg_time) for time in truck_times)
+    cost += workload_variance
+
+    return cost
+
+
+
 def main():
     # Let user define input json
     if len(sys.argv) > 1:
@@ -80,19 +114,14 @@ def main():
     inital_solution = gen_inital_solution(demands, num_trucks)
     print (inital_solution)
 
+    initial_cost = get_cost(inital_solution, distance_matrix)
+    print(initial_cost)
+
+
 if __name__ == "__main__":
     main()
 
-
-
-# # Function that evaluates solutions and outputs the cost of it
-# def get_cost(solution):
-#     cost = 0
-
-# ### Define the cost function
-# # take as input json file data
-
-#     return cost
+# With the solution also return how much each truck is driving?
 
 #     # # solution = optim_genetic_alg(distance_matrix, demands, num_trucks) # intial solution, make it random
 #     # for step in steps-1:
@@ -122,7 +151,3 @@ if __name__ == "__main__":
 #     return solution
 
 # # Define soft constraints
-
-# # 	Jāsamazina laiks, cik katra mašīna pavada braucot;
-# #	Jānodrošina, lai katra mašīna pēc iespējas ir vienlīdz nodarbināta.
-# #	Ir noteikts piegāžu darba laiks no 8:00-17:00. 17:00 visām mašīnām ir jāatgriežas uzņēmuma depo.
