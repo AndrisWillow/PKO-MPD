@@ -1,5 +1,8 @@
 import json
 import sys
+import random
+import copy
+import time
 
 class Truck:
     def __init__(self, truck_id, capacity=80): 
@@ -81,7 +84,7 @@ def get_cost(solution, distance_matrix):
         cost += total_time_delivering
 
         truck_times.append(total_time_delivering)
-        print(f"Truck {truck_id}: {total_time_delivering} minutes")
+        # print(f"Truck {truck_id}: {total_time_delivering} minutes") # TODO add this to end results?
 
     # 3rd constaint #Jānodrošina, lai katra mašīna pēc iespējas ir vienlīdz nodarbināta.
     avg_time = sum(truck_times) / len(truck_times)
@@ -90,9 +93,91 @@ def get_cost(solution, distance_matrix):
 
     return cost
 
+# Utility function that will adjust a solution once mutated to enforce that when a customer is visited with enough cargo & when needed go to depo to get more
+def adjust_routes(solution, demands):
+    adjusted_solution = {}
 
+    for truck_id, route in solution.items():
+        adjusted_route = []  
+        cargo = Truck(truck_id).capacity
+        # We remove all previous routes to go to depo and recalculate them for simplicity, when the mutation happens some depo visits might be too early or too late
+        route = [0] + [loc for loc in route if loc != 0] + [0]
+
+        # Iterate through the route to handle deliveries
+        for loc in route:
+            demand = demands[loc]
+            if cargo < demand:
+                # Return to depot to refill cargo if necessary
+                adjusted_route.extend([0, loc])
+                cargo = Truck(truck_id).capacity - demand
+            else:
+                adjusted_route.append(loc)
+                cargo -= demand
+
+        adjusted_solution[truck_id] = adjusted_route
+
+    return adjusted_solution
+
+# Function that as it's input takes an existing solution and modifies it randomly 
+def mutate_solution(solution, demands, changes=1):
+    new_solution = copy.deepcopy(solution)
+    for _ in range(changes):
+        change_type = random.choice([1, 2])
+
+        # 1st option swpas in 1 truck swpas 2 destinations
+        if change_type == 1:
+            truck_id = random.choice(list(new_solution.keys()))
+            route = new_solution[truck_id]
+            # Get indices of customer visits (exclude depots)
+            customer_indices = [i for i, loc in enumerate(route) if loc != 0]
+            if len(customer_indices) >= 2:
+                idx1, idx2 = random.sample(customer_indices, 2)
+                # Swap the customer locations
+                route[idx1], route[idx2] = route[idx2], route[idx1]
+                new_solution[truck_id] = route
+        
+        # 2nd option swaps 2 destinations in 2 trucks
+        if change_type == 2:
+
+            # Get 2 random trucks
+            truck_ids = random.sample(list(new_solution.keys()), 2)
+            route1 = new_solution[truck_ids[0]]
+            route2 = new_solution[truck_ids[1]]
+            
+            # Get customer indices (exclude depots)
+            customer_indices1 = [i for i, loc in enumerate(route1) if loc != 0]
+            customer_indices2 = [i for i, loc in enumerate(route2) if loc != 0]
+
+            if customer_indices1 and customer_indices2:
+                idx1 = random.choice(customer_indices1)
+                idx2 = random.choice(customer_indices2)
+                # Swap the customer locations
+                route1[idx1], route2[idx2] = route2[idx2], route1[idx1]
+                new_solution[truck_ids[0]] = route1
+                new_solution[truck_ids[1]] = route2
+
+    # Re-evaluate the routes to ensure capacity constraints and depot visits
+    new_solution = adjust_routes(new_solution, demands)
+
+    return new_solution
+
+# We use a primitive genetic algorithm, that takes the last best solution and mutates it slightly
+# Then next solution is picked based on the best performance by fitness metric, which in this case is the cost function
+def get_best_solution_using_gen_alg(solution, cost, demands, distance_matrix, population = 4):
+    best_solution = solution
+    best_solution_cost = cost
+    mutated_solution = {}
+    for _ in range(population):
+        mutated_solution = mutate_solution(solution, demands)
+        new_cost = get_cost(mutated_solution, distance_matrix)
+        # print(best_solution_cost)
+        if new_cost < best_solution_cost: 
+             best_solution_cost = new_cost
+             best_solution = mutated_solution
+    return best_solution, best_solution_cost
 
 def main():
+
     # Let user define input json
     if len(sys.argv) > 1:
         json_filename = sys.argv[1]
@@ -109,45 +194,25 @@ def main():
     else:
         steps = 50
 
+    start_time = time.time()
     distance_matrix, demands = read_json(json_filename)
-
     inital_solution = gen_inital_solution(demands, num_trucks)
-    print (inital_solution)
-
     initial_cost = get_cost(inital_solution, distance_matrix)
-    print(initial_cost)
+    solution = inital_solution
+    cost = initial_cost
 
+    # Running genetic algorithm
+    for _ in range(steps):
+        solution, cost  = get_best_solution_using_gen_alg(solution, cost, demands, distance_matrix)
+
+
+    print(f"Inital cost {initial_cost}. Initial solution:")
+    print(inital_solution)
+    print(f"Final cost {cost}. Final solution:")
+    print(solution)
+
+    elapsed_time = time.time() - start_time
+    print(f"Program executed in {elapsed_time:.2f} seconds")
 
 if __name__ == "__main__":
     main()
-
-# With the solution also return how much each truck is driving?
-
-#     # # solution = optim_genetic_alg(distance_matrix, demands, num_trucks) # intial solution, make it random
-#     # for step in steps-1:
-#     #     solution = optim_genetic_alg(distance_matrix, demands, num_trucks) # using genetic algorithm modify the solution
-#     #     cost = get_cost(solution) # evaluate the solution
-#     #     print(cost)
-
-#     # print(solution, cost)
-
-# # Function that as it's input takes an existing solution and modifies it slightly (changes some destinations between trucks, delete depot visit if capacity still allows for more visits)
-# def mutate_solution(solution):
-#     return 0
-
-# def optim_genetic_alg(solution, population = 4):
-#     best_solution = {}
-#     best_solution_cost = 1000
-#     solution = {0: [0, 1, 3, 2, 0, 15, 0]}
-#     for _ in population:
-#         # solution = mutate_solution(solution),
-#         # cost = get_cost(solution)
-#         # if best_solution_cost > cost: 
-#             #  best_solution_cost = cost
-#             #  best_solution = solution
-
-# # solution object contains a list of all the trucks and their route, something like:
-# # {0: [0, 1, 3, 2, 0, 15... 0], 1: [0, 2, 4... 0], ...} - Trucks always start and end at 0th location - company depot
-#     return solution
-
-# # Define soft constraints

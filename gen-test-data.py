@@ -1,5 +1,6 @@
 import json
 import random
+import sys
 
 # Function that generates the distance matrix (nxn) where n is the amount that there are customers + company depot
 def generate_distance_matrix(num_customers, min_distance=5, max_distance=60):
@@ -34,12 +35,17 @@ def main():
     distance_matrix = generate_distance_matrix(num_customers)
     demands = generate_demands(num_customers)
 
+    if len(sys.argv) > 1:
+        json_filename = sys.argv[1]
+    else: 
+        json_filename = 'test-data.json'
+
     data = {
         'distance_matrix': distance_matrix,
         'demands': demands
     }
 
-    with open('test-data.json', 'w') as json_file:
+    with open(json_filename, 'w') as json_file:
         json.dump(data, json_file, indent=4)
 
 if __name__ == "__main__":

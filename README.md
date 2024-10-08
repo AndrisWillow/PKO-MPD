@@ -8,10 +8,11 @@ Loģistikas uzņēmumam nepieciešams apkalpot 15 klientu objektus dienā. Uzņ�
 
 ### To generate test data
 
-``` python3 gen-test-data.py ```
+``` python3 gen-test-data.py {input_json}```
 #### This will generate a random distance matrix (Asymmetric i.e. AB != BA) to each customer + company depot, and the demand for each costumer. Customer amount may be specified.
 #### Company depot is the 0th element.
 
 ### To run algorithm
 
-``` python3 PKO-MD.py ```
+``` python3 PKO-MD.py {input_json} {num_truks} {num_generations} ```
+#### There are also defualt paramaters set
