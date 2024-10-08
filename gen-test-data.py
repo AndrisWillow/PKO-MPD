@@ -19,6 +19,7 @@ def generate_distance_matrix(num_customers, min_distance=5, max_distance=60):
     return distance_matrix
 
 # Function to generate demands for customers
+# solves requirement: #	Katrs klients var pieprasīt no 5-20 kravas vienībām;
 def generate_demands(num_customers, min_demand=5, max_demand=20):
     demands = [0]  # Depot is first value and it has no demand
     for _ in range(num_customers):
