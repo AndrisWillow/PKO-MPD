@@ -194,6 +194,11 @@ def main():
     else:
         steps = 50
 
+    if len(sys.argv) > 4:
+        population = int(sys.argv[4])
+    else:
+        population = 4
+
     start_time = time.time()
     distance_matrix, demands = read_json(json_filename)
     inital_solution = gen_inital_solution(demands, num_trucks)
@@ -203,12 +208,12 @@ def main():
 
     # Running genetic algorithm
     for _ in range(steps):
-        solution, cost  = get_best_solution_using_gen_alg(solution, cost, demands, distance_matrix)
+        solution, cost  = get_best_solution_using_gen_alg(solution, cost, demands, distance_matrix, population)
 
 
-    print(f"Inital cost {initial_cost}. Initial solution:")
+    print(f"Inital cost {initial_cost:.2f}. Initial solution:")
     print(inital_solution)
-    print(f"Final cost {cost}. Final solution:")
+    print(f"Final cost {cost:.2f}. Final solution:")
     print(solution)
 
     elapsed_time = time.time() - start_time

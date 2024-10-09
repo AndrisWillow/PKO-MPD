@@ -30,15 +30,18 @@ def generate_demands(num_customers, min_demand=5, max_demand=20):
 
 # Generating distance matrix + costomer demands, combining both in 1 json file, 0-th element is company depot
 def main():
-    num_customers = int(input("Enter the number of customer locations: "))
-
-    distance_matrix = generate_distance_matrix(num_customers)
-    demands = generate_demands(num_customers)
-
     if len(sys.argv) > 1:
         json_filename = sys.argv[1]
     else: 
         json_filename = 'test-data.json'
+
+    if len(sys.argv) > 2:
+        num_customers = int(sys.argv[2])
+    else: 
+        num_customers = int(input("Enter the number of customer locations: "))
+    
+    distance_matrix = generate_distance_matrix(num_customers)
+    demands = generate_demands(num_customers)
 
     data = {
         'distance_matrix': distance_matrix,
